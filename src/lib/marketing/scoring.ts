@@ -1,4 +1,3 @@
-import type { AiProvider } from "@/lib/ai/provider";
 import { getActiveProvider } from "@/lib/ai/index";
 
 export async function scoreProspect(prospectData: {

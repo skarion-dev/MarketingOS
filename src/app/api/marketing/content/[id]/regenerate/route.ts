@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuthFromRequest } from "@/lib/auth";
 import { getContent, updateContent } from "@/server/repositories/marketingRepository";
 import { getActiveProvider } from "@/lib/ai/index";
-import { CONTENT_PROMPTS } from "@/lib/marketing/prompts/contentDrafting";
 
 export async function POST(
   request: NextRequest,

@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { NextRequest } from "next/server";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function getAuthFromRequest(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const {

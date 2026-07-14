@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 import { createTask } from "@/server/repositories/marketingRepository";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = createServiceSupabaseClient();
     const now = new Date();

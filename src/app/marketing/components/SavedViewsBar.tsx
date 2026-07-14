@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface SavedView {
   id: string;
@@ -18,18 +18,18 @@ export default function SavedViewsBar({ entity, onApply }: {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchSavedViews();
-  }, [entity]);
-
-  async function fetchSavedViews() {
+  const fetchSavedViews = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/marketing/saved-views?entity=${entity}`);
       if (res.ok) setViews(await res.json());
     } catch {}
     setLoading(false);
-  }
+  }, [entity]);
+
+  useEffect(() => {
+    fetchSavedViews();
+  }, [fetchSavedViews]);
 
   async function handleSave() {
     if (!name.trim()) return;

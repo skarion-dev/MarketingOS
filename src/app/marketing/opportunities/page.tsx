@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 
 const STAGES = ["identified", "qualified", "proposal", "negotiation", "closed_won", "closed_lost"];
 
