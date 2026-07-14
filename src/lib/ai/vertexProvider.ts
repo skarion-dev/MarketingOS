@@ -1,9 +1,14 @@
 import { getAccessToken } from "./vertexAuth";
 import type { AiProvider, AiSendOptions, AiSendResult } from "./provider";
 
+interface VertexSendOptions extends AiSendOptions {
+  grounding?: boolean;
+}
+
 function createVertexTextProvider(modelId: string): AiProvider {
   return {
-    async send(options: AiSendOptions): Promise<AiSendResult> {
+    async send(rawOptions: AiSendOptions): Promise<AiSendResult> {
+      const options = rawOptions as VertexSendOptions;
       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
       const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
 
@@ -31,16 +36,24 @@ function createVertexTextProvider(modelId: string): AiProvider {
         };
       }
 
+      const tools: Record<string, unknown>[] = [];
+
       if (options.tools?.length) {
-        body.tools = [
-          {
-            functionDeclarations: options.tools.map((t) => ({
-              name: t.name,
-              description: t.description,
-              parameters: t.parameters,
-            })),
-          },
-        ];
+        tools.push({
+          functionDeclarations: options.tools.map((t) => ({
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters,
+          })),
+        });
+      }
+
+      if (options.grounding) {
+        tools.push({ googleSearch: {} });
+      }
+
+      if (tools.length) {
+        body.tools = tools;
       }
 
       const response = await fetch(url, {
