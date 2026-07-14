@@ -324,3 +324,125 @@ export async function deleteProspect(
 
   return !error;
 }
+
+export interface MarketingContent {
+  id: string;
+  user_id: string;
+  campaign_id: string;
+  prospect_id: string | null;
+  kind: "linkedin_post" | "cold_email" | "comment_reply" | "dm" | "other";
+  subject: string | null;
+  body: string;
+  status: "draft" | "approved" | "sent";
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getContentList(userId: string): Promise<MarketingContent[]> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_content")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch content: ${error.message}`);
+  return (data ?? []) as MarketingContent[];
+}
+
+export async function getContent(
+  id: string,
+  userId: string
+): Promise<MarketingContent | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_content")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (error) return null;
+  return data as MarketingContent;
+}
+
+export async function createContent(
+  userId: string,
+  input: Pick<MarketingContent, "campaign_id" | "kind" | "body"> & {
+    prospect_id?: string;
+    subject?: string;
+  }
+): Promise<MarketingContent> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_content")
+    .insert({ user_id: userId, status: "draft", ...input })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create content: ${error.message}`);
+  return data as MarketingContent;
+}
+
+export async function updateContent(
+  id: string,
+  userId: string,
+  updates: Partial<
+    Pick<
+      MarketingContent,
+      "campaign_id" | "prospect_id" | "kind" | "subject" | "body" | "status"
+    >
+  >
+): Promise<MarketingContent | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_content")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data as MarketingContent;
+}
+
+export async function approveContent(
+  id: string,
+  userId: string,
+  approverId: string
+): Promise<MarketingContent | null> {
+  const supabase = createServiceSupabaseClient();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("marketing_content")
+    .update({
+      status: "approved",
+      approved_by: approverId,
+      approved_at: now,
+      updated_at: now,
+    })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data as MarketingContent;
+}
+
+export async function deleteContent(
+  id: string,
+  userId: string
+): Promise<boolean> {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("marketing_content")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  return !error;
+}
