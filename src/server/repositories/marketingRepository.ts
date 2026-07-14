@@ -651,3 +651,119 @@ export async function deleteTask(
 
   return !error;
 }
+
+export interface MarketingOpportunity {
+  id: string;
+  user_id: string;
+  prospect_id: string;
+  name: string;
+  stage:
+    | "identified"
+    | "qualified"
+    | "proposal"
+    | "negotiation"
+    | "closed_won"
+    | "closed_lost";
+  value_cents: number;
+  probability: number;
+  expected_close_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getOpportunities(
+  userId: string
+): Promise<MarketingOpportunity[]> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_opportunities")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error)
+    throw new Error(`Failed to fetch opportunities: ${error.message}`);
+  return (data ?? []) as MarketingOpportunity[];
+}
+
+export async function getOpportunity(
+  id: string,
+  userId: string
+): Promise<MarketingOpportunity | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_opportunities")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (error) return null;
+  return data as MarketingOpportunity;
+}
+
+export async function createOpportunity(
+  userId: string,
+  input: Pick<MarketingOpportunity, "prospect_id" | "name"> & {
+    stage?: MarketingOpportunity["stage"];
+    value_cents?: number;
+    probability?: number;
+    expected_close_date?: string;
+    notes?: string;
+  }
+): Promise<MarketingOpportunity> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_opportunities")
+    .insert({ user_id: userId, ...input })
+    .select()
+    .single();
+
+  if (error)
+    throw new Error(`Failed to create opportunity: ${error.message}`);
+  return data as MarketingOpportunity;
+}
+
+export async function updateOpportunity(
+  id: string,
+  userId: string,
+  updates: Partial<
+    Pick<
+      MarketingOpportunity,
+      | "prospect_id"
+      | "name"
+      | "stage"
+      | "value_cents"
+      | "probability"
+      | "expected_close_date"
+      | "notes"
+    >
+  >
+): Promise<MarketingOpportunity | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_opportunities")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data as MarketingOpportunity;
+}
+
+export async function deleteOpportunity(
+  id: string,
+  userId: string
+): Promise<boolean> {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("marketing_opportunities")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  return !error;
+}
