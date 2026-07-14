@@ -21,14 +21,60 @@ export default function ProspectsPage() {
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState("");
   const [filterSource, setFilterSource] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState("");
 
   useEffect(() => {
+    fetchProspects();
+  }, []);
+
+  function fetchProspects() {
+    setLoading(true);
     fetch("/api/marketing/prospects")
       .then((r) => r.json())
       .then((d) => setProspects(Array.isArray(d) ? d : []))
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  async function handleCSVUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImporting(true);
+    setImportResult("");
+
+    const text = await file.text();
+    const lines = text.split("\n").filter(Boolean);
+    if (lines.length < 2) {
+      setImportResult("CSV must have a header row + at least one data row");
+      setImporting(false);
+      return;
+    }
+
+    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase().replace(/"/g, ""));
+    const rows = lines.slice(1).map((line) => {
+      const vals = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
+      const row: Record<string, string> = {};
+      headers.forEach((h, i) => { row[h] = vals[i] ?? ""; });
+      return row;
+    });
+
+    try {
+      const res = await fetch("/api/marketing/prospects/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      const result = await res.json();
+      setImportResult(`Created: ${result.created}, Skipped: ${result.skipped}, Errors: ${result.errors}`);
+      fetchProspects();
+    } catch (err) {
+      setImportResult(String(err));
+    }
+
+    setImporting(false);
+    e.target.value = "";
+  }
 
   const filtered = prospects.filter((p) => {
     if (filterType && p.type !== filterType) return false;
@@ -43,6 +89,13 @@ export default function ProspectsPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Prospects</h1>
         <div className="flex gap-2">
+          <label className="border border-zinc-700 bg-zinc-900 rounded px-3 py-2 text-sm cursor-pointer hover:bg-zinc-800">
+            {importing ? "Importing..." : "Import CSV"}
+            <input type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
+          </label>
+          {importResult && (
+            <span className="text-xs text-zinc-400 self-center">{importResult}</span>
+          )}
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
