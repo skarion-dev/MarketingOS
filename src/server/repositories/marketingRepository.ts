@@ -446,3 +446,208 @@ export async function deleteContent(
 
   return !error;
 }
+
+export interface MarketingConversation {
+  id: string;
+  user_id: string;
+  prospect_id: string;
+  channel_id: string;
+  subject: string | null;
+  last_message_at: string | null;
+  status: "active" | "archived" | "closed";
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getConversations(
+  userId: string
+): Promise<MarketingConversation[]> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_conversations")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error)
+    throw new Error(`Failed to fetch conversations: ${error.message}`);
+  return (data ?? []) as MarketingConversation[];
+}
+
+export async function getConversation(
+  id: string,
+  userId: string
+): Promise<MarketingConversation | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_conversations")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (error) return null;
+  return data as MarketingConversation;
+}
+
+export async function createConversation(
+  userId: string,
+  input: Pick<MarketingConversation, "prospect_id" | "channel_id"> & {
+    subject?: string;
+    status?: MarketingConversation["status"];
+  }
+): Promise<MarketingConversation> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_conversations")
+    .insert({ user_id: userId, ...input })
+    .select()
+    .single();
+
+  if (error)
+    throw new Error(`Failed to create conversation: ${error.message}`);
+  return data as MarketingConversation;
+}
+
+export async function updateConversation(
+  id: string,
+  userId: string,
+  updates: Partial<
+    Pick<
+      MarketingConversation,
+      "prospect_id" | "channel_id" | "subject" | "status" | "last_message_at"
+    >
+  >
+): Promise<MarketingConversation | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_conversations")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data as MarketingConversation;
+}
+
+export async function deleteConversation(
+  id: string,
+  userId: string
+): Promise<boolean> {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("marketing_conversations")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  return !error;
+}
+
+export interface MarketingTask {
+  id: string;
+  user_id: string;
+  prospect_id: string | null;
+  title: string;
+  description: string | null;
+  assignee_id: string | null;
+  status: "open" | "in_progress" | "completed" | "cancelled";
+  due_date: string | null;
+  priority: "low" | "medium" | "high";
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getTasks(userId: string): Promise<MarketingTask[]> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_tasks")
+    .select("*")
+    .or(`user_id.eq.${userId},assignee_id.eq.${userId}`)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch tasks: ${error.message}`);
+  return (data ?? []) as MarketingTask[];
+}
+
+export async function getTask(
+  id: string,
+  userId: string
+): Promise<MarketingTask | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_tasks")
+    .select("*")
+    .eq("id", id)
+    .or(`user_id.eq.${userId},assignee_id.eq.${userId}`)
+    .single();
+
+  if (error) return null;
+  return data as MarketingTask;
+}
+
+export async function createTask(
+  userId: string,
+  input: Pick<MarketingTask, "title"> & {
+    prospect_id?: string;
+    description?: string;
+    assignee_id?: string;
+    due_date?: string;
+    priority?: MarketingTask["priority"];
+  }
+): Promise<MarketingTask> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_tasks")
+    .insert({ user_id: userId, ...input })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create task: ${error.message}`);
+  return data as MarketingTask;
+}
+
+export async function updateTask(
+  id: string,
+  userId: string,
+  updates: Partial<
+    Pick<
+      MarketingTask,
+      | "title"
+      | "description"
+      | "assignee_id"
+      | "status"
+      | "due_date"
+      | "priority"
+      | "prospect_id"
+    >
+  >
+): Promise<MarketingTask | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_tasks")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .or(`user_id.eq.${userId},assignee_id.eq.${userId}`)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data as MarketingTask;
+}
+
+export async function deleteTask(
+  id: string,
+  userId: string
+): Promise<boolean> {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("marketing_tasks")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  return !error;
+}
