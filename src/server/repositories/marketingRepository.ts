@@ -90,3 +90,101 @@ export async function deleteChannel(
 
   return !error;
 }
+
+export interface MarketingCampaign {
+  id: string;
+  user_id: string;
+  channel_id: string;
+  name: string;
+  status: "draft" | "active" | "paused" | "completed";
+  start_date: string | null;
+  end_date: string | null;
+  goals: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function getCampaigns(userId: string): Promise<MarketingCampaign[]> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_campaigns")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch campaigns: ${error.message}`);
+  return (data ?? []) as MarketingCampaign[];
+}
+
+export async function getCampaign(
+  id: string,
+  userId: string
+): Promise<MarketingCampaign | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_campaigns")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+
+  if (error) return null;
+  return data as MarketingCampaign;
+}
+
+export async function createCampaign(
+  userId: string,
+  input: Pick<MarketingCampaign, "name" | "channel_id"> & {
+    status?: MarketingCampaign["status"];
+    start_date?: string;
+    end_date?: string;
+    goals?: string;
+  }
+): Promise<MarketingCampaign> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_campaigns")
+    .insert({ user_id: userId, ...input })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create campaign: ${error.message}`);
+  return data as MarketingCampaign;
+}
+
+export async function updateCampaign(
+  id: string,
+  userId: string,
+  updates: Partial<
+    Pick<
+      MarketingCampaign,
+      "name" | "channel_id" | "status" | "start_date" | "end_date" | "goals"
+    >
+  >
+): Promise<MarketingCampaign | null> {
+  const supabase = createServiceSupabaseClient();
+  const { data, error } = await supabase
+    .from("marketing_campaigns")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .single();
+
+  if (error) return null;
+  return data as MarketingCampaign;
+}
+
+export async function deleteCampaign(
+  id: string,
+  userId: string
+): Promise<boolean> {
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("marketing_campaigns")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  return !error;
+}
