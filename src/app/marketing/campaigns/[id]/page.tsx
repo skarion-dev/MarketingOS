@@ -15,17 +15,27 @@ interface Campaign {
   created_at: string;
 }
 
+interface CampaignStats {
+  contentCount: number;
+  prospectsTouched: number;
+  opportunitiesGenerated: number;
+}
+
 export default function CampaignDetailPage() {
   const params = useParams();
   const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [stats, setStats] = useState<CampaignStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/marketing/campaigns/${params.id}`)
-      .then((r) => r.json())
-      .then((d) => {
+    Promise.all([
+      fetch(`/api/marketing/campaigns/${params.id}`).then((r) => r.json()),
+      fetch(`/api/marketing/campaigns/${params.id}/stats`).then((r) => r.json()),
+    ])
+      .then(([d, s]) => {
         if (d.error) setCampaign(null);
         else setCampaign(d);
+        if (!s.error) setStats(s);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -49,6 +59,24 @@ export default function CampaignDetailPage() {
           {campaign.status}
         </span>
       </div>
+
+      {stats && (
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="border border-zinc-800 rounded-lg p-3 bg-zinc-900 text-center">
+            <p className="text-2xl font-bold">{stats.contentCount}</p>
+            <p className="text-xs text-zinc-400">Content</p>
+          </div>
+          <div className="border border-zinc-800 rounded-lg p-3 bg-zinc-900 text-center">
+            <p className="text-2xl font-bold">{stats.prospectsTouched}</p>
+            <p className="text-xs text-zinc-400">Prospects</p>
+          </div>
+          <div className="border border-zinc-800 rounded-lg p-3 bg-zinc-900 text-center">
+            <p className="text-2xl font-bold">{stats.opportunitiesGenerated}</p>
+            <p className="text-xs text-zinc-400">Opportunities</p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2 text-sm">
         {campaign.goals && (
           <p><span className="text-zinc-400">Goals:</span> {campaign.goals}</p>
