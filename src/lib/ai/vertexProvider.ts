@@ -1,12 +1,11 @@
 import { getAccessToken } from "./vertexAuth";
 import type { AiProvider, AiSendOptions, AiSendResult } from "./provider";
 
-export function createVertexProProvider(): AiProvider {
+function createVertexTextProvider(modelId: string): AiProvider {
   return {
     async send(options: AiSendOptions): Promise<AiSendResult> {
       const projectId = process.env.GOOGLE_CLOUD_PROJECT_ID;
       const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
-      const model = process.env.VERTEX_TEXT_MODEL || "gemini-2.5-pro-preview-05-06";
 
       if (!projectId) {
         throw new Error("GOOGLE_CLOUD_PROJECT_ID is not set");
@@ -15,7 +14,7 @@ export function createVertexProProvider(): AiProvider {
       const token = await getAccessToken();
 
       const url =
-        `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${model}:generateContent`;
+        `https://${location}-aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/publishers/google/models/${modelId}:generateContent`;
 
       const contents = options.messages.map((m) => ({
         role: m.role === "assistant" ? "model" : "user",
@@ -77,4 +76,16 @@ export function createVertexProProvider(): AiProvider {
       };
     },
   };
+}
+
+export function createVertexProProvider(): AiProvider {
+  return createVertexTextProvider(
+    process.env.VERTEX_TEXT_MODEL || "gemini-2.5-pro-preview-05-06"
+  );
+}
+
+export function createVertexFlashProvider(): AiProvider {
+  return createVertexTextProvider(
+    "gemini-2.5-flash-preview-05-06"
+  );
 }
