@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
+import { resolveWorkspaceFromHeaders } from "@/server/api/workspaceContext";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const auth = await getAuthFromRequest(req);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const supabase = createServiceSupabaseClient();
-    const { error } = await supabase.from("marketing_prompt_templates").delete().eq("id", params.id).eq("user_id", auth.userId);
-    if (error) throw new Error(error.message);
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!["owner", "admin", "editor"].includes(ctx.role)) {
+    return NextResponse.json({ error: "Insufficient role" }, { status: 403 });
   }
+
+  const supabase = createServiceSupabaseClient();
+  const { error } = await supabase
+    .from("prompt_templates")
+    .delete()
+    .eq("id", params.id)
+    .eq("workspace_id", ctx.workspaceId);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ success: true });
 }

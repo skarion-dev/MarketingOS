@@ -6,8 +6,10 @@
 ## Repository
 
 - **Repo:** https://github.com/skarion-dev/MarketingOS (public)
-- **Docs:** `docs/GOALS.md` (product goals, source of truth) · `docs/PLAN.md` (100 build chunks) ·
-  `docs/LEGACY_PLAN.md` (historical reference only — do not build from it)
+- **Docs:** `docs/GOALS.md` (product goals, source of truth) · `docs/PLAN.md` (100 build chunks).
+  The earlier legacy B2B-CRM build was removed from the repo; migrations 0001–0020 were replaced
+  by the workspace-scoped model in 0021+ (`research_runs`, `prompt_templates`, and `ai_keys`
+  followed in 0039–0041).
 - **Sister repos for conventions (read-only reference):**
   - https://github.com/skarion-dev/skarion-app — TalentOS. Copy its patterns: provider-agnostic AI
     layer (`AiProvider.send({system, messages, tools})`), repository/API-route structure, auth

@@ -6,8 +6,9 @@ repositories, repositories before API routes, API routes before UI. Cross-phase 
 only run forward (Phase 3 needs Phase 1's provider + Phase 2's tables/UI; Phase 4 needs
 Phase 3's approved-content gate).
 
-Read `HANDOFF.md` first. Product goals: `docs/GOALS.md`. This file supersedes
-`docs/LEGACY_PLAN.md`.
+Read `HANDOFF.md` first. Product goals: `docs/GOALS.md`. This file supersedes the earlier
+B2B-CRM plan; that legacy build (generic CRM tables, prospects/opportunities UI) was removed
+from the repo.
 
 Global rules (apply to every chunk):
 - All AI calls go through the `AiProvider` interface — never provider SDKs in route handlers.

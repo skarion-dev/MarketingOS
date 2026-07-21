@@ -53,5 +53,4 @@ Stack conventions:
 - [HANDOFF.md](HANDOFF.md) — **start here**: everything a builder AI needs to execute the plan
 - [docs/GOALS.md](docs/GOALS.md) — product goals (source of truth)
 - [docs/PLAN.md](docs/PLAN.md) — 5-phase / 100-chunk build plan, one chunk per coding task
-- [docs/LEGACY_PLAN.md](docs/LEGACY_PLAN.md) — original 4-phase plan, kept for reference
 - docs/PUBLISHING.md + docs/INTEGRATIONS.md — created in Phases 4–5

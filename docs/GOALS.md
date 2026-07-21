@@ -1,7 +1,8 @@
 # MarketingOS — Goals (v4, 2026-07-20)
 
-Grounded in: `Skarion_Master_AI_Context.md` (2026-07-15), Abdullah's product direction, and the
-legacy build plan from `alsaki27/MarketingOS/docs/PLAN.md` (kept as `docs/LEGACY_PLAN.md`).
+Grounded in: `Skarion_Master_AI_Context.md` (2026-07-15), Abdullah's product direction, and an
+earlier B2B-CRM build plan from `alsaki27/MarketingOS` (that legacy build has since been removed
+from this repo).
 
 > v4: center of gravity confirmed as the **Airtable-style content ops workspace with AI in the
 > grid**, plus two long-term commitments: **publish directly to every social channel from the
@@ -97,7 +98,7 @@ Built so it can serve Skarion now and other teams later without a rewrite:
 
 ## 4. Build plan
 
-`docs/PLAN.md` re-cuts the legacy 120 chunks into **5 phases (~150 chunks)**:
+`docs/PLAN.md` re-cuts the earlier 120 chunks into **5 phases (~150 chunks)**:
 
 1. **Phase 1 — SaaS core + AI foundation**: workspace/tenant model, roles, audit, secret vault,
    settings, AI provider layer + Vertex (Gemini/Imagen/grounding), cost metering.
