@@ -1,137 +1,131 @@
-# MarketingOS — Goals (v3, redefined 2026-07-20)
+# MarketingOS — Goals (v4, 2026-07-20)
 
 Grounded in: `Skarion_Master_AI_Context.md` (2026-07-15), Abdullah's product direction, and the
 legacy build plan from `alsaki27/MarketingOS/docs/PLAN.md` (kept as `docs/LEGACY_PLAN.md`).
 
-> v3 correction: the center of gravity is an **Airtable-style content operations workspace** —
-> the content plan lives here as data, and AI is integrated into that grid to generate the
-> content. Outreach/lead tracking exists, but only in service of the content engine.
+> v4: center of gravity confirmed as the **Airtable-style content ops workspace with AI in the
+> grid**, plus two long-term commitments: **publish directly to every social channel from the
+> app**, and **SaaS-grade architecture from day one** so this can outlive Skarion's internal use.
 
 ---
 
 ## 1. What this app is
 
-MarketingOS is **Skarion's content planning and production system** — think Airtable, but the
-tables *are* the content plan, and every cell can be filled, rewritten, or extended by AI.
-
-Skarion's growth depends on a steady stream of candidate-facing content: founder-led LinkedIn
-posts, educational threads about OPT strategy and OSP/telecom pathways, Reddit participation,
-Facebook group presence, email sequences, and the skarion.com funnel behind all of it. Today that
-plan lives in spreadsheets and chats. MarketingOS makes it a database with an AI production line
-bolted on.
-
-The mental model:
+MarketingOS is **Skarion's content planning, production, and publishing system** — think
+Airtable, but the tables *are* the content plan, every cell can be filled by AI, and an approved
+row can be published straight to LinkedIn, Reddit, Facebook, X, or email without leaving the app.
 
 ```
 Ideas → Content plan (Airtable-style grid) → AI-generated drafts → human review/approve
-      → ready-to-publish queue → published & tracked → performance feeds back into ideas
+      → one-click direct publish (or schedule) → metrics sync back → plan learns
 ```
+
+Skarion's growth depends on candidate-facing content: founder-led LinkedIn, OPT/OSP education,
+Reddit participation, Facebook groups, email sequences. Today that runs on spreadsheets and
+copy-paste. MarketingOS replaces the whole chain.
 
 ## 2. The goals
 
 ### G1 — The content plan is the product: an Airtable-grade data grid
-Everything is a table you can sort, filter, group, and edit in place:
-
-- **Content calendar** — every planned post/email/comment with channel, date, owner, status
-- **Idea backlog** — captured topics with source, angle, target audience, priority
-- **Channel accounts** — LinkedIn (Abdullah's profile + Skarion page), Reddit, Facebook groups,
-  email lists, each with their own rules and cadence
-- **Campaigns/themes** — groupings like "OPT season push", "OSP awareness series",
-  "founder story arc"
-- **Assets** — generated images, carousels, thumbnails linked to content rows
-
-Airtable-style UX is a hard requirement: inline cell editing, saved views (grid/group/calendar/
-kanban-by-status), filters, and CSV import/export. This is what the team actually works in daily.
+- **Content calendar**, **idea backlog**, **campaigns/themes**, **channel accounts**, **assets** —
+  all real tables with inline cell editing, saved views (grid / group / calendar / kanban),
+  filters, CSV import/export.
+- This is the daily workspace for the team, not a reporting layer on top of one.
 
 ### G2 — AI is integrated into the grid, not a separate tool
-The point of building this instead of using Airtable: the AI lives *inside* the rows.
+- Row-level actions: generate draft from idea, rewrite/shorten/expand any cell, N variants of a
+  hook, auto-fill channel/persona/posting-time suggestions.
+- Bulk: 20 idea rows → 20 channel-correct drafts, each held as `status: draft`.
+- Imagen for row-attached visual assets; Gemini + Google Search grounding for fact-based posts,
+  citations stored on the row; every call cost-logged.
 
-- Generate a full draft from an idea row (button or command on the row)
-- Rewrite/shorten/expand any cell ("make this hook punchier", "3 variants of this headline")
-- Fill structured fields automatically: suggested channel, best posting time, target persona
-- Bulk operations: take 20 idea rows → 20 channel-correct drafts, each held as `status: draft`
-- Image generation (Imagen) attached to content rows as assets
-- Grounded research runs (Gemini + Google Search) for fact-based posts, with citations stored
-  on the row
+### G3 — Compliance is a pipeline stage, not a prompt hope
+- Abdullah's voice and the Master AI Context rules are enforced mechanically: per-channel rules,
+  "Hi [Name]," never "Dear", no guarantees of job/sponsorship/timing, no exact fees, "no upfront
+  fee" never "free", no booking link before interest, no invented stats/employers, no Skarion
+  Engineering bleed.
+- Lint violations are stored on the content row and shown to the reviewer. A failing draft cannot
+  be approved without an explicit override + reason (audit-logged).
 
-Provider-agnostic AI layer (Vertex Gemini for text/grounding, Imagen for visuals), with every
-call logged for cost.
+### G4 — Human-approved, then one-click direct publishing
+- Lifecycle: `idea → draft → in review → approved → scheduled/published`, full audit trail.
+- **Once approved, publishing happens from inside the app** via connected channel accounts
+  (OAuth): LinkedIn personal + company page, Facebook pages/groups where permitted, Reddit, X,
+  email lists. No copy-paste step.
+- Per-channel publisher adapters handle formatting (length, hashtags, link rules), scheduling,
+  retries with backoff, and capture the published URL + external post ID back onto the row.
+- The human approval gate is never bypassed: no fully autonomous posting, ever. Scheduling is
+  fine; auto-generate-and-auto-post without review is not.
 
-### G3 — Every draft obeys the Skarion voice and compliance rules, mechanically
-The Master AI Context is enforced in the generation pipeline, not just by prompt hope:
+### G5 — Performance loop: metrics sync back into the plan
+- Publisher adapters pull engagement metrics (likes/comments/shares/replies where APIs allow) on
+  a schedule and snapshot them onto content rows.
+- Historical baselines to beat: 67 posts → 5 calls; 590 emails → 34 replies → 17 calls;
+  184 DMs → 14 replies → 4 calls. Winning angles get flagged into the idea backlog.
 
-- Abdullah's style: direct, warm, practical, short paragraphs, no corporate slop
-- Channel rules differ and are encoded per channel (LinkedIn short DM vs Reddit help-first
-  comment vs email starting "Hi [Name],")
-- Hard lint before a human sees a draft: no guarantees of jobs/sponsorship/timing, no exact fee
-  quotes, "no upfront fee" never "free", no booking link before interest, no invented stats or
-  employer relationships
-- Never mix Skarion Engineering into candidate-facing content
+### G6 — Light funnel bridge, not a CRM
+- A content touch can create a lead row; a warm reply (fee question, booking-link request) raises
+  it and creates a task. Signed agreement → hand off to TalentOS. Bulk list management stays in
+  SkarionCRM; post-signing ops stay in TalentOS.
 
-A draft that fails lint is flagged with the specific violations — the reviewer fixes or
-regenerates, never ships around it.
+### G7 — SaaS-grade from day one
+Built so it can serve Skarion now and other teams later without a rewrite:
 
-### G4 — Human-in-the-loop publishing, always
-AI produces; humans approve. Nothing publishes itself. Content lifecycle is explicit:
-`idea → draft → in review → approved → scheduled/ready → published`, with an audit trail of who
-approved what. Skarion's credibility (and Abdullah's personal LinkedIn) is the asset being
-protected.
-
-### G5 — Close the loop: performance data flows back into the plan
-Track what actually got published and how it did (replies, engagement, calls booked from content
-where attributable). The historical baselines — 590 emails → 34 replies → 17 calls; 184 DMs →
-14 replies → 4 calls; 67 social posts → 5 calls — become the benchmarks the content engine must
-beat. Winning angles get flagged in the idea backlog so the plan learns.
-
-### G6 — Bridge to the business funnel, without becoming the CRM
-Content exists to fill the consultation pipeline. MarketingOS keeps a light prospect/conversation
-layer (a content touch can create a lead row; a warm reply creates a follow-up task), and the
-hard boundary stays: **signed agreement → hand off to TalentOS**. SkarionCRM keeps bulk list
-management; TalentOS keeps post-signing operations. MarketingOS does not re-build either.
+- **Workspace (tenant) model** at the root of every table; all access scoped by `workspace_id`
+  with RLS. Skarion is workspace #1, not a hard-coded assumption.
+- **Memberships & roles** (owner/admin/editor/viewer) per workspace; every mutation audit-logged.
+- **Encrypted secret vault** for OAuth tokens and AI keys (never in plaintext columns, never in
+  prompts/logs).
+- **Per-workspace AI budgets** with hard caps and spend metering per model/campaign/user.
+- **Provider adapters everywhere** — AI providers, social publishers, email senders — behind
+  interfaces, so any vendor can be swapped without touching call sites.
+- **Versioned prompt/template library** with approval workflow (same draft→approve pattern as
+  content).
+- **Testing & CI**: unit tests for lib logic, API smoke tests, typecheck + build gate on every
+  PR; migrations are numbered, append-only, and reversible where possible.
+- **Observability**: structured logs, error tracking, publish-queue dashboards; no silent 500s.
+- **Rate-limit respect** for every external API (LinkedIn/Reddit/Meta/X), with queue-based
+  backoff instead of retry storms.
 
 ## 3. Non-goals
 
-- **A general Airtable clone.** The grid exists to run the content plan, not to be a generic
-  database product.
-- **Auto-publishing or auto-DM sequences.** No content leaves without a human approval.
-- **B2B / Skarion Engineering content.** Separate brand, out of scope.
-- **Immigration advice content.** Approved boundary language only.
-- **Full CRM** (pipeline stages, deals) and **bulk lead-list processing** — TalentOS and
-  SkarionCRM respectively.
+- A general Airtable clone — the grid exists to run the content plan.
+- Auto-publishing or auto-DM sequences without human approval.
+- B2B / Skarion Engineering content (separate brand).
+- Immigration advice content (approved boundary language only).
+- Full CRM / bulk lead-list processing (TalentOS / SkarionCRM).
 
-## 4. What changes vs the legacy plan
+## 4. Build plan
 
-Kept: Next.js 14 + Supabase + Vercel scaffold, provider-agnostic AI layer with the Vertex slot,
-draft→approve lifecycle, chunk-per-migration build ordering.
+`docs/PLAN.md` re-cuts the legacy 120 chunks into **5 phases (~150 chunks)**:
 
-Re-cut around the content engine:
-
-1. **`marketing_content` becomes the star table**, upgraded with the content-plan field set:
-   channel, campaign/theme, target persona, hook, body, CTA, asset links, planned date, owner,
-   status, published URL, performance snapshot.
-2. **The Airtable-style `EditableGrid` is promoted from "one component, reuse something" to a
-   flagship Phase-2 deliverable** — inline editing, saved views, calendar + kanban + grid views.
-3. **Idea backlog and channel-rule tables are added**; channel rules seed the per-channel
-   generation prompts.
-4. **Compliance lint becomes a pipeline stage** on every generate/regenerate call, with
-   violation details stored on the content row.
-5. **Bulk generation** (idea rows → draft rows) is a first-class endpoint with per-campaign
-   AI-spend caps.
-6. Outreach/CRM chunks shrink to the light bridge described in G6.
+1. **Phase 1 — SaaS core + AI foundation**: workspace/tenant model, roles, audit, secret vault,
+   settings, AI provider layer + Vertex (Gemini/Imagen/grounding), cost metering.
+2. **Phase 2 — Data model + Airtable grid**: content/ideas/campaigns/channels/assets tables,
+   flagship EditableGrid with saved views, calendar/kanban, CSV.
+3. **Phase 3 — AI production line**: prompt library seeded from Master Context, row-level and
+   bulk generation, compliance lint, images, grounded research.
+4. **Phase 4 — Direct publishing**: OAuth connections, per-channel publisher adapters
+   (LinkedIn, Meta, Reddit, X, email), publish queue with scheduling/retry, published-URL and
+   metrics sync.
+5. **Phase 5 — Performance loop + funnel bridge + hardening**: analytics, baselines, lead
+   bridge, TalentOS handoff, security/perf/QA, CI completion.
 
 ## 5. Success metrics
 
 | Metric | Why |
 |---|---|
 | Posts shipped per week per channel | The plan actually executing |
-| % of planned content delivered on time | G1 calendar discipline |
-| Drafts passing compliance lint first pass | G3 pipeline quality |
-| Human edit distance before approval | AI draft quality (lower = better) |
-| AI cost per published piece | G2 cost control |
-| Calls booked attributable to content | G5/G6 — the funnel is the point |
+| % planned content delivered on time | Calendar discipline |
+| Publish success rate (queue) | G4 reliability |
+| Drafts passing compliance lint first pass | G3 quality |
+| Human edit distance before approval | AI draft quality |
+| AI cost per published piece | G2/G7 cost control |
+| Calls booked attributable to content | The funnel is the point |
 
 ## 6. Open items the app must not guess (Master Context §26)
 
 Exact success fee, approved stats/testimonials, mentionable employer names, follow-up cadence,
-current team roles, approved posting cadence per channel. Stored as admin-editable settings with
-conservative defaults; generation uses approved fallback language until leadership fills them in.
+current team roles, approved posting cadence per channel. Stored as per-workspace,
+admin-editable settings with conservative defaults; generation uses approved fallback language
+until leadership fills them in.
