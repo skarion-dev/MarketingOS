@@ -1,22 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
+import { resolveWorkspaceFromHeaders } from "@/server/api/workspaceContext";
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
-  try {
-    const auth = await getAuthFromRequest(request);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const supabase = createServiceSupabaseClient();
-    const { data: runs } = await supabase
-      .from("marketing_research_runs")
-      .select("cost_cents, created_at")
-      .eq("user_id", auth.userId)
-      .order("created_at", { ascending: false })
-      .limit(100);
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-    const totalCents = (runs ?? []).reduce((sum, r) => sum + (r.cost_cents ?? 0), 0);
-    return NextResponse.json({ totalCents, runs: runs ?? [] });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
+  const supabase = createServiceSupabaseClient();
+  const { data: usage } = await supabase
+    .from("ai_usage_log")
+    .select("cost_cents, prompt_tokens, completion_tokens, model, created_at")
+    .eq("workspace_id", ctx.workspaceId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  const totalCostCents = (usage ?? []).reduce(
+    (sum: number, r: any) => sum + Number(r.cost_cents ?? 0), 0
+  );
+  const totalTokens = (usage ?? []).reduce(
+    (sum: number, r: any) =>
+      sum + (r.prompt_tokens ?? 0) + (r.completion_tokens ?? 0),
+    0
+  );
+
+  return NextResponse.json({
+    totalCalls: usage?.length ?? 0,
+    totalCostCents,
+    totalTokens,
+    usage,
+  });
 }

@@ -4,13 +4,11 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 const NAV_ITEMS = [
-  { href: "/marketing", label: "Dashboard" },
-  { href: "/marketing/channels", label: "Channels" },
-  { href: "/marketing/campaigns", label: "Campaigns" },
-  { href: "/marketing/prospects", label: "Prospects" },
-  { href: "/marketing/tasks", label: "Tasks" },
-  { href: "/marketing/opportunities", label: "Opportunities" },
-  { href: "/marketing/content", label: "Content" },
+  { href: "/marketing/plan", label: "Plan" },
+  { href: "/marketing/ideas", label: "Ideas" },
+  { href: "/marketing/publish", label: "Publish" },
+  { href: "/marketing/reports", label: "Reports" },
+  { href: "/marketing/settings", label: "Settings" },
 ];
 
 export default function MarketingLayout({

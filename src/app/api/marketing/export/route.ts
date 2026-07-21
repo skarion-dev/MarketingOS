@@ -1,52 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getProspects, getCampaigns, getContentList } from "@/server/repositories/marketingRepository";
+import { resolveWorkspaceFromHeaders } from "@/server/api/workspaceContext";
+import { getContent, ContentFilters } from "@/server/repositories/marketing/contentRepository";
 
 export async function GET(request: NextRequest) {
-  try {
-    const auth = await getAuthFromRequest(request);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type") ?? "prospects";
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
-    let headers = "";
-    let rows: string[] = [];
+  const url = new URL(request.url);
+  const status = url.searchParams.get("status")?.split(",") as any;
+  const channelId = url.searchParams.get("channelId") ?? undefined;
+  const campaignId = url.searchParams.get("campaignId") ?? undefined;
 
-    if (type === "prospects") {
-      const data = await getProspects(auth.userId);
-      headers = "first_name,last_name,email,company,title,linkedin_url,source,stage,status";
-      rows = data.map((p) =>
-        [p.first_name, p.last_name, p.email, p.company, p.title, p.linkedin_url, p.source, p.stage, p.status]
-          .map((v) => `"${(v ?? "").replace(/"/g, '""')}"`)
-          .join(",")
-      );
-    } else if (type === "campaigns") {
-      const data = await getCampaigns(auth.userId);
-      headers = "name,status,start_date,end_date,goals";
-      rows = data.map((c) =>
-        [c.name, c.status, c.start_date, c.end_date, c.goals]
-          .map((v) => `"${(v ?? "").replace(/"/g, '""')}"`)
-          .join(",")
-      );
-    } else if (type === "content") {
-      const data = await getContentList(auth.userId);
-      headers = "kind,subject,body,status";
-      rows = data.map((c) =>
-        [c.kind, c.subject, c.body, c.status]
-          .map((v) => `"${(v ?? "").replace(/"/g, '""')}"`)
-          .join(",")
-      );
-    }
+  const filters: ContentFilters = {
+    status,
+    channelId,
+    campaignId,
+  };
 
-    const csv = [headers, ...rows].join("\n");
+  const rows = await getContent(ctx.workspaceId, filters);
 
-    return new NextResponse(csv, {
-      headers: {
-        "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename=marketing-${type}-export.csv`,
-      },
-    });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  if (rows.length === 0) {
+    return NextResponse.json({ error: "No rows to export" }, { status: 404 });
   }
+
+  const headers = ["Title", "Hook", "Body", "Kind", "Status", "Persona", "Planned At", "Created At"];
+
+  const csvRows = [headers.map((h) => `"${h}"`).join(",")];
+
+  for (const row of rows) {
+    csvRows.push(
+      [
+        row.title ?? "",
+        row.hook ?? "",
+        row.body ?? "",
+        row.kind,
+        row.status,
+        row.persona ?? "",
+        row.planned_at ?? "",
+        row.created_at,
+      ]
+        .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+        .join(",")
+    );
+  }
+
+  const csv = csvRows.join("\n");
+
+  return new NextResponse(csv, {
+    headers: {
+      "Content-Type": "text/csv",
+      "Content-Disposition": `attachment; filename="marketingos-export-${new Date().toISOString().slice(0, 10)}.csv"`,
+    },
+  });
 }

@@ -10,8 +10,9 @@ export async function withRetry<T>(
       return await fn();
     } catch (err) {
       if (attempt === maxRetries) throw err;
-      const delay = baseDelay * Math.pow(2, attempt - 1);
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      const expBackoff = baseDelay * Math.pow(2, attempt - 1);
+      const jitter = Math.random() * 1000;
+      await new Promise((resolve) => setTimeout(resolve, expBackoff + jitter));
     }
   }
 

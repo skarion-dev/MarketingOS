@@ -1,25 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getTasks, createTask } from "@/server/repositories/marketingRepository";
+import { resolveWorkspaceFromHeaders } from "@/server/api/workspaceContext";
+import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
-  try {
-    const auth = await getAuthFromRequest(request);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    return NextResponse.json(await getTasks(auth.userId));
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  const supabase = createServiceSupabaseClient();
+  const { data } = await supabase
+    .from("tasks")
+    .select("*")
+    .eq("workspace_id", ctx.workspaceId)
+    .order("created_at", { ascending: false });
+
+  return NextResponse.json(data ?? []);
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const auth = await getAuthFromRequest(request);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const body = await request.json();
-    if (!body.title) return NextResponse.json({ error: "title required" }, { status: 400 });
-    return NextResponse.json(await createTask(auth.userId, body), { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!["owner", "admin", "editor"].includes(ctx.role)) {
+    return NextResponse.json({ error: "Insufficient role" }, { status: 403 });
   }
+
+  const supabase = createServiceSupabaseClient();
+  const body = await request.json();
+
+  const { data, error } = await supabase
+    .from("tasks")
+    .insert({ workspace_id: ctx.workspaceId, ...body })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data, { status: 201 });
 }

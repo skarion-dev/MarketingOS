@@ -1,40 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getContent, updateContent, deleteContent } from "@/server/repositories/marketingRepository";
+import { getContentById, updateContent, deleteContent } from "@/server/repositories/marketing/contentRepository";
+import { resolveWorkspaceFromHeaders } from "@/server/api/workspaceContext";
+import { logAudit } from "@/server/services/audit";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const auth = await getAuthFromRequest(req);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const c = await getContent(params.id, auth.userId);
-    if (!c) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(c);
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
+  const content = await getContentById(ctx.workspaceId, params.id);
+  if (!content) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(content);
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const auth = await getAuthFromRequest(req);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const body = await req.json();
-    const c = await updateContent(params.id, auth.userId, body);
-    if (!c) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(c);
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!["owner", "admin", "editor"].includes(ctx.role)) {
+    return NextResponse.json({ error: "Insufficient role" }, { status: 403 });
   }
+
+  const body = await request.json();
+  const content = await updateContent(ctx.workspaceId, params.id, body);
+
+  await logAudit({
+    workspace_id: ctx.workspaceId,
+    actor: ctx.userId,
+    action: "content.update",
+    entity: "content",
+    entity_id: params.id,
+  });
+
+  return NextResponse.json(content);
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const auth = await getAuthFromRequest(req);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const ok = await deleteContent(params.id, auth.userId);
-    if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!["owner", "admin", "editor"].includes(ctx.role)) {
+    return NextResponse.json({ error: "Insufficient role" }, { status: 403 });
   }
+
+  await deleteContent(ctx.workspaceId, params.id);
+
+  await logAudit({
+    workspace_id: ctx.workspaceId,
+    actor: ctx.userId,
+    action: "content.delete",
+    entity: "content",
+    entity_id: params.id,
+  });
+
+  return NextResponse.json({ success: true });
 }

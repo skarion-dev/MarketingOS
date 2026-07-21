@@ -1,85 +1,129 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 
 interface SavedView {
   id: string;
   name: string;
   entity: string;
-  filters: Record<string, unknown>;
+  config: Record<string, unknown>;
+  view_type: "grid" | "kanban" | "calendar";
   is_default: boolean;
 }
 
-export default function SavedViewsBar({ entity, onApply }: {
+export default function SavedViewsBar({
+  entity,
+  viewType,
+  onViewChange,
+  onApplyFilters,
+}: {
   entity: string;
-  onApply: (filters: Record<string, unknown>) => void;
+  viewType: string;
+  onViewChange: (type: string, viewId?: string) => void;
+  onApplyFilters: (config: Record<string, unknown>) => void;
 }) {
   const [views, setViews] = useState<SavedView[]>([]);
-  const [name, setName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [showSave, setShowSave] = useState(false);
+  const [saveName, setSaveName] = useState("");
 
-  const fetchSavedViews = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/marketing/saved-views?entity=${entity}`);
-      if (res.ok) setViews(await res.json());
-    } catch {}
-    setLoading(false);
+  const loadViews = useCallback(async () => {
+    const res = await fetch(`/api/marketing/views?entity=${entity}`);
+    if (res.ok) setViews(await res.json());
   }, [entity]);
 
-  useEffect(() => {
-    fetchSavedViews();
-  }, [fetchSavedViews]);
+  useState(() => {
+    loadViews();
+  });
 
-  async function handleSave() {
-    if (!name.trim()) return;
-    await fetch("/api/marketing/saved-views", {
+  const handleSave = async () => {
+    if (!saveName.trim()) return;
+    await fetch("/api/marketing/views", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, entity, filters: {} }),
+      body: JSON.stringify({
+        entity,
+        name: saveName,
+        config: {},
+        view_type: viewType,
+      }),
     });
-    setName("");
-    fetchSavedViews();
-  }
+    setSaveName("");
+    setShowSave(false);
+    loadViews();
+  };
 
-  async function handleDelete(id: string) {
-    await fetch(`/api/marketing/saved-views/${id}`, { method: "DELETE" });
-    fetchSavedViews();
-  }
+  const handleApply = (view: SavedView) => {
+    onViewChange(view.view_type, view.id);
+    onApplyFilters(view.config);
+  };
 
-  if (loading) return null;
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/marketing/views/${id}`, { method: "DELETE" });
+    loadViews();
+  };
 
   return (
-    <div className="flex items-center gap-3 mb-4 text-sm">
-      <span className="text-zinc-400">Saved Views:</span>
-      {views.map((v) => (
-        <button
-          key={v.id}
-          onClick={() => onApply(v.filters)}
-          className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-        >
-          {v.name}
-          <span
-            onClick={(e) => { e.stopPropagation(); handleDelete(v.id); }}
-            className="ml-1 text-zinc-500 hover:text-red-400"
-          >x</span>
-        </button>
-      ))}
-      <div className="flex gap-1">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Save current..."
-          className="border border-zinc-700 bg-zinc-800 rounded px-2 py-0.5 text-xs w-32"
-        />
-        <button
-          onClick={handleSave}
-          disabled={!name.trim()}
-          className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          Save
-        </button>
+    <div className="flex items-center gap-3 mb-4 flex-wrap">
+      <div className="flex gap-1 bg-zinc-900 rounded-lg border border-zinc-800 p-0.5">
+        {["grid", "kanban", "calendar"].map((type) => (
+          <button
+            key={type}
+            onClick={() => onViewChange(type)}
+            className={`px-3 py-1 text-xs rounded-md ${
+              viewType === type
+                ? "bg-zinc-700 text-white"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            {type.charAt(0).toUpperCase() + type.slice(1)}
+          </button>
+        ))}
       </div>
+
+      <div className="h-6 w-px bg-zinc-800" />
+
+      {views.map((view) => (
+        <div key={view.id} className="flex items-center gap-1">
+          <button
+            onClick={() => handleApply(view)}
+            className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+          >
+            {view.name}
+          </button>
+          <button
+            onClick={() => handleDelete(view.id)}
+            className="text-zinc-600 hover:text-red-400 text-xs"
+          >
+            x
+          </button>
+        </div>
+      ))}
+
+      {showSave ? (
+        <div className="flex items-center gap-1">
+          <input
+            value={saveName}
+            onChange={(e) => setSaveName(e.target.value)}
+            placeholder="View name"
+            className="bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-xs w-32"
+            onKeyDown={(e) => e.key === "Enter" && handleSave()}
+          />
+          <button
+            onClick={handleSave}
+            className="text-xs text-green-400 hover:text-green-300"
+          >
+            Save
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowSave(true)}
+          className="text-xs text-zinc-500 hover:text-zinc-300"
+        >
+          + Save View
+        </button>
+      )}
     </div>
   );
 }

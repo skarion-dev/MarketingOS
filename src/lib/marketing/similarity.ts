@@ -1,30 +1,41 @@
-import { createServiceSupabaseClient } from "@/lib/supabase/server";
+import { getEmbedding } from "@/lib/ai/vertexEmbeddingProvider";
 
-export async function findSimilarProspects(
-  userId: string,
-  embedding: number[],
-  limit = 5
-): Promise<{ id: string; similarity: number }[]> {
-  const supabase = createServiceSupabaseClient();
-  const { data, error } = await supabase.rpc("match_prospects", {
-    query_embedding: embedding,
-    match_threshold: 0.7,
-    match_count: limit,
-    p_user_id: userId,
-  });
-
-  if (error) return [];
-  return (data ?? []) as { id: string; similarity: number }[];
-}
-
-export function cosineSimilarity(a: number[], b: number[]): number {
+function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0;
   let normA = 0;
   let normB = 0;
-  for (let i = 0; i < a.length; i++) {
+  for (let i = 0; i < Math.min(a.length, b.length); i++) {
     dot += a[i] * b[i];
     normA += a[i] * a[i];
     normB += b[i] * b[i];
   }
-  return dot / (Math.sqrt(normA) * Math.sqrt(normB) || 1);
+  if (normA === 0 || normB === 0) return 0;
+  return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+export async function checkSimilarity(
+  text: string,
+  existingTexts: string[],
+  threshold = 0.85
+): Promise<{ duplicates: number[]; maxSimilarity: number }> {
+  if (!existingTexts.length) return { duplicates: [], maxSimilarity: 0 };
+
+  const targetEmbedding = await getEmbedding(text);
+  const duplicates: number[] = [];
+  let maxSimilarity = 0;
+
+  for (let i = 0; i < existingTexts.length; i++) {
+    const existing = existingTexts[i];
+    if (!existing || existing.length < 20) continue;
+
+    const existingEmbedding = await getEmbedding(existing);
+    const sim = cosineSimilarity(targetEmbedding.values, existingEmbedding.values);
+
+    maxSimilarity = Math.max(maxSimilarity, sim);
+    if (sim >= threshold) {
+      duplicates.push(i);
+    }
+  }
+
+  return { duplicates, maxSimilarity };
 }

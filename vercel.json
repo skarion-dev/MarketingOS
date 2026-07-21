@@ -1,3 +1,20 @@
 {
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/cron/publish-worker",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/metrics-sync",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/connection-health",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/followups",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

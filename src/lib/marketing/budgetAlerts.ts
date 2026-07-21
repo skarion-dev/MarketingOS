@@ -1,24 +1,40 @@
 import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
-export async function checkBudgetAlerts(userId: string): Promise<{ campaignId: string; name: string; pct: number }[]> {
+export async function checkBudgetAlerts(workspaceId: string): Promise<{
+  alerts: { campaignId: string; campaignName: string; spentPercent: number }[];
+}> {
   const supabase = createServiceSupabaseClient();
+
   const { data: campaigns } = await supabase
-    .from("marketing_campaigns")
-    .select("id, name, monthly_ai_budget_cents, ai_spend_this_month_cents")
-    .eq("user_id", userId)
-    .gt("monthly_ai_budget_cents", 0);
+    .from("campaigns")
+    .select("id, name, ai_budget_cents")
+    .eq("workspace_id", workspaceId)
+    .eq("status", "active")
+    .gt("ai_budget_cents", 0);
 
-  if (!campaigns) return [];
+  const alerts: { campaignId: string; campaignName: string; spentPercent: number }[] = [];
 
-  return campaigns
-    .filter((c) => {
-      const budget = c.monthly_ai_budget_cents ?? 0;
-      const spent = c.ai_spend_this_month_cents ?? 0;
-      return budget > 0 && spent / budget >= 0.8;
-    })
-    .map((c) => ({
-      campaignId: c.id,
-      name: c.name,
-      pct: Math.round(((c.ai_spend_this_month_cents ?? 0) / (c.monthly_ai_budget_cents ?? 1)) * 100),
-    }));
+  for (const campaign of campaigns ?? []) {
+    const { count } = await supabase
+      .from("ai_usage_log")
+      .select("*", { count: "exact", head: true })
+      .eq("workspace_id", workspaceId)
+      .eq("entity", "content")
+      .eq("entity_id", campaign.id);
+
+    const spentCents = count ?? 0;
+    const percent = campaign.ai_budget_cents > 0
+      ? (spentCents / campaign.ai_budget_cents) * 100
+      : 0;
+
+    if (percent >= 80) {
+      alerts.push({
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        spentPercent: Math.round(percent),
+      });
+    }
+  }
+
+  return { alerts };
 }

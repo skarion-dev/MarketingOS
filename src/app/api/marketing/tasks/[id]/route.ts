@@ -1,40 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getTask, updateTask, deleteTask } from "@/server/repositories/marketingRepository";
+import { resolveWorkspaceFromHeaders } from "@/server/api/workspaceContext";
+import { createServiceSupabaseClient } from "@/lib/supabase/server";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const auth = await getAuthFromRequest(req);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const t = await getTask(params.id, auth.userId);
-    if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(t);
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const ctx = await resolveWorkspaceFromHeaders(request.headers);
+  if (!ctx) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  if (!["owner", "admin", "editor"].includes(ctx.role)) {
+    return NextResponse.json({ error: "Insufficient role" }, { status: 403 });
   }
-}
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const auth = await getAuthFromRequest(req);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const body = await req.json();
-    const t = await updateTask(params.id, auth.userId, body);
-    if (!t) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json(t);
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
-}
+  const supabase = createServiceSupabaseClient();
+  const body = await request.json();
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  try {
-    const auth = await getAuthFromRequest(req);
-    if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const ok = await deleteTask(params.id, auth.userId);
-    if (!ok) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json({ success: true });
-  } catch (err) {
-    return NextResponse.json({ error: String(err) }, { status: 500 });
-  }
+  const { data, error } = await supabase
+    .from("tasks")
+    .update(body)
+    .eq("id", params.id)
+    .eq("workspace_id", ctx.workspaceId)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(data);
 }
